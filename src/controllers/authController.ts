@@ -43,7 +43,20 @@ export const getMe = async (req: AuthRequest, res: Response) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
-  res.json({ user: req.user });
+  try {
+    const result = await pool.query(
+      'SELECT id, login, email, is_admin FROM ud_users WHERE id = $1',
+      [req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+    const user = result.rows[0];
+    res.json({ user: { id: user.id, login: user.login, email: user.email, isAdmin: user.is_admin } });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 };
 
 export const logout = (req: Request, res: Response) => {

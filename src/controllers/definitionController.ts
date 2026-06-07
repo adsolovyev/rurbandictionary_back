@@ -13,6 +13,7 @@ export const getRandomDefinitions = async (req: AuthRequest, res: Response) => {
         (SELECT vote_type FROM ud_votes WHERE user_id = $1 AND definition_id = d.id) as user_vote
       FROM ud_definitions d
       LEFT JOIN ud_users u ON d.author_id = u.id
+      WHERE d.status = 'active'
       ORDER BY RANDOM()
       LIMIT $2`,
       [userId, limit]
@@ -43,7 +44,7 @@ export const getDefinitionsByWord = async (req: AuthRequest, res: Response) => {
         (SELECT vote_type FROM ud_votes WHERE user_id = $1 AND definition_id = d.id) as user_vote
        FROM ud_definitions d
        LEFT JOIN ud_users u ON d.author_id = u.id
-       WHERE d.word ILIKE $2
+       WHERE d.status = 'active' AND d.word ILIKE $2
        ORDER BY (d.upvotes - d.downvotes) DESC, d.created_at DESC
        LIMIT $3 OFFSET $4`,
       [userId, `%${word}%`, limit, offset]
@@ -70,9 +71,9 @@ export const createDefinition = async (req: AuthRequest, res: Response) => {
 
   try {
     const result = await pool.query(
-      `INSERT INTO ud_definitions (word, definition, example, author_id)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, word, definition, example, created_at, upvotes, downvotes`,
+      `INSERT INTO ud_definitions (word, definition, example, author_id, status)
+        VALUES ($1, $2, $3, $4, 'pending')
+        RETURNING id, word, definition, example, created_at, upvotes, downvotes, status`,
       [word.trim(), definition.trim(), example?.trim() || null, req.user.id]
     );
     const newDef = result.rows[0];
@@ -205,7 +206,7 @@ export const getDefinitionById = async (req: AuthRequest, res: Response) => {
         (SELECT vote_type FROM ud_votes WHERE user_id = $1 AND definition_id = d.id) as user_vote
        FROM ud_definitions d
        LEFT JOIN ud_users u ON d.author_id = u.id
-       WHERE d.id = $2`,
+       WHERE d.id = $2 AND d.status = 'active'`,
       [userId, definitionId]
     );
     if (result.rows.length === 0) {
@@ -247,5 +248,33 @@ export const getDefinitionsByAuthor = async (req: AuthRequest, res: Response) =>
   } catch (err: unknown) {
     console.error('Error fetching definitions by author:', err instanceof Error ? err.message : err);
     res.status(500).json({ error: 'Failed to fetch definitions by author' });
+  }
+};
+
+// GET /api/definitions/word/:word/exact?limit=5
+export const getDefinitionsByExactWord = async (req: AuthRequest, res: Response) => {
+  const word = req.params.word;
+  const limit = parseInt(req.query.limit as string, 10) || 5;
+  const userId = req.user?.id || null;
+
+  if (!word) {
+    return res.status(400).json({ error: 'Word parameter is missing' });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT d.id, d.word, d.definition, d.example, d.created_at, d.upvotes, d.downvotes, u.login as author,
+        (SELECT vote_type FROM ud_votes WHERE user_id = $1 AND definition_id = d.id) as user_vote
+       FROM ud_definitions d
+       LEFT JOIN ud_users u ON d.author_id = u.id
+       WHERE d.status = 'active' AND d.word ILIKE $2
+       ORDER BY (d.upvotes - d.downvotes) DESC, d.created_at DESC
+       LIMIT $3`,
+      [userId, word, limit]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch definitions by exact word' });
   }
 };

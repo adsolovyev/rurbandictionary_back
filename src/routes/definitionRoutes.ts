@@ -7,6 +7,7 @@ import {
   reportDefinition,
   getDefinitionById,
   getDefinitionsByAuthor,
+  getDefinitionsByExactWord,
 } from '../controllers/definitionController';
 import { authenticate } from '../middleware/auth';
 import { optionalAuth } from '../middleware/optionalAuth';
@@ -14,6 +15,7 @@ import { optionalAuth } from '../middleware/optionalAuth';
 const router = Router();
 
 router.get('/random', optionalAuth, getRandomDefinitions);
+router.get('/word/:word/exact', optionalAuth, getDefinitionsByExactWord);
 router.get('/by-author', optionalAuth, getDefinitionsByAuthor);
 router.get('/:id', optionalAuth, getDefinitionById);
 router.get('/', optionalAuth, getDefinitionsByWord);

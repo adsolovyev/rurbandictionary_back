@@ -6,6 +6,7 @@ import authRoutes from './routes/authRoutes';
 import definitionRoutes from './routes/definitionRoutes';
 import browseRoutes from './routes/browseRoutes';
 import userRoutes from './routes/userRoutes';
+import adminRoutes from './routes/adminRoutes';
 
 console.log('=== SERVER FILE RELOADED ===');
 dotenv.config();
@@ -29,6 +30,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/definitions', definitionRoutes);
 app.use('/api', browseRoutes); // /api/browse, /api/suggest, /api/random-word
+app.use('/api/admin', adminRoutes);
 
 // Простой эндпоинт для проверки
 app.get('/', (req, res) => {
