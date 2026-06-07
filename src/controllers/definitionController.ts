@@ -4,27 +4,30 @@ import pool from '../db';
 
 // GET /api/definitions/random?limit=10
 export const getRandomDefinitions = async (req: AuthRequest, res: Response) => {
-  const limit = parseInt(req.query.limit as string, 10) || 10;
+  console.log('Handling /api/definitions/random');
+  const limit = parseInt(req.query.limit as string || '10', 10);
   const userId = req.user?.id || null;
   try {
     const result = await pool.query(
       `SELECT d.*, u.login as author,
         (SELECT vote_type FROM ud_votes WHERE user_id = $1 AND definition_id = d.id) as user_vote
-       FROM ud_definitions d
-       LEFT JOIN ud_users u ON d.author_id = u.id
-       ORDER BY RANDOM()
-       LIMIT $2`,
+      FROM ud_definitions d
+      LEFT JOIN ud_users u ON d.author_id = u.id
+      ORDER BY RANDOM()
+      LIMIT $2`,
       [userId, limit]
     );
+    console.log('Query executed successfully for /api/definitions/random');
     res.json(result.rows);
-  } catch (err) {
-    console.error(err);
+  } catch (err: unknown) {
+    console.error('Error executing query for random definitions:', err instanceof Error ? err.message : err);
     res.status(500).json({ error: 'Failed to fetch random definitions' });
   }
 };
 
 // GET /api/definitions?word=...&page=...&limit=...
 export const getDefinitionsByWord = async (req: AuthRequest, res: Response) => {
+  console.log('Handling /api/definitions?word=...');
   const word = req.query.word as string;
   if (!word) {
     return res.status(400).json({ error: 'Missing word parameter' });
@@ -43,17 +46,19 @@ export const getDefinitionsByWord = async (req: AuthRequest, res: Response) => {
        WHERE d.word ILIKE $2
        ORDER BY (d.upvotes - d.downvotes) DESC, d.created_at DESC
        LIMIT $3 OFFSET $4`,
-      [userId, word, limit, offset]
+      [userId, `%${word}%`, limit, offset]
     );
+    console.log('Query executed successfully for /api/definitions?word=...');
     res.json(result.rows);
-  } catch (err) {
-    console.error(err);
+  } catch (err: unknown) {
+    console.error('Error executing query for definitions by word:', err instanceof Error ? err.message : err);
     res.status(500).json({ error: 'Failed to fetch definitions by word' });
   }
 };
 
 // POST /api/definitions
 export const createDefinition = async (req: AuthRequest, res: Response) => {
+  console.log('Handling /api/definitions POST');
   if (!req.user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
@@ -72,15 +77,17 @@ export const createDefinition = async (req: AuthRequest, res: Response) => {
     );
     const newDef = result.rows[0];
     newDef.author = req.user.login;
+    console.log('Definition created successfully:', newDef);
     res.status(201).json(newDef);
-  } catch (err) {
-    console.error(err);
+  } catch (err: unknown) {
+    console.error('Error creating definition:', err instanceof Error ? err.message : err);
     res.status(500).json({ error: 'Failed to create definition' });
   }
 };
 
 // POST /api/definitions/:id/vote
 export const voteDefinition = async (req: AuthRequest, res: Response) => {
+  console.log('Handling /api/definitions/:id/vote');
   if (!req.user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
@@ -91,7 +98,7 @@ export const voteDefinition = async (req: AuthRequest, res: Response) => {
   }
   const definitionId = parseInt(idParam, 10);
   if (isNaN(definitionId)) {
-    return res.status(400).json({ error: 'Definition id must be a number' });
+    return res.status(400). json({ error: 'Definition id must be a number' });
   }
 
   const { vote } = req.body;
@@ -136,15 +143,17 @@ export const voteDefinition = async (req: AuthRequest, res: Response) => {
     }
 
     const updated = await pool.query('SELECT upvotes, downvotes FROM ud_definitions WHERE id = $1', [definitionId]);
+    console.log('Vote processed successfully:', updated.rows[0]);
     res.json({ upvotes: updated.rows[0].upvotes, downvotes: updated.rows[0].downvotes });
-  } catch (err) {
-    console.error(err);
+  } catch (err: unknown) {
+    console.error('Error processing vote:', err instanceof Error ? err.message : err);
     res.status(500).json({ error: 'Failed to process vote' });
   }
 };
 
 // POST /api/definitions/:id/report
 export const reportDefinition = async (req: AuthRequest, res: Response) => {
+  console.log('Handling /api/definitions/:id/report');
   if (!req.user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
@@ -169,14 +178,17 @@ export const reportDefinition = async (req: AuthRequest, res: Response) => {
        VALUES ($1, $2, $3, $4)`,
       [definitionId, req.user.id, reason, comment || null]
     );
+    console.log('Report submitted successfully');
     res.status(201).json({ message: 'Report submitted' });
-  } catch (err) {
-    console.error(err);
+  } catch (err: unknown) {
+    console.error('Error submitting report:', err instanceof Error ? err.message : err);
     res.status(500).json({ error: 'Failed to submit report' });
   }
 };
 
+// GET /api/definitions/:id
 export const getDefinitionById = async (req: AuthRequest, res: Response) => {
+  console.log('Handling /api/definitions/:id');
   const idParam = req.params.id;
   if (typeof idParam !== 'string') {
     return res.status(400).json({ error: 'Invalid definition id' });
@@ -186,6 +198,7 @@ export const getDefinitionById = async (req: AuthRequest, res: Response) => {
     return res.status(400).json({ error: 'Definition id must be a number' });
   }
   const userId = req.user?.id || null;
+
   try {
     const result = await pool.query(
       `SELECT d.*, u.login as author,
@@ -198,14 +211,17 @@ export const getDefinitionById = async (req: AuthRequest, res: Response) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Definition not found' });
     }
+    console.log('Fetched definition by id successfully:', result.rows[0]);
     res.json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
+  } catch (err: unknown) {
+    console.error('Error fetching definition by id:', err instanceof Error ? err.message : err);
     res.status(500).json({ error: 'Failed to fetch definition' });
   }
 };
 
+// GET /api/definitions/by-author
 export const getDefinitionsByAuthor = async (req: AuthRequest, res: Response) => {
+  console.log('Handling /api/definitions/by-author');
   const author = req.query.author as string;
   if (!author) {
     return res.status(400).json({ error: 'Missing author parameter' });
@@ -226,10 +242,10 @@ export const getDefinitionsByAuthor = async (req: AuthRequest, res: Response) =>
        LIMIT $3 OFFSET $4`,
       [userId, author, limit, offset]
     );
+    console.log('Fetched definitions by author successfully:', result.rows);
     res.json(result.rows);
-  } catch (err) {
-    console.error(err);
+  } catch (err: unknown) {
+    console.error('Error fetching definitions by author:', err instanceof Error ? err.message : err);
     res.status(500).json({ error: 'Failed to fetch definitions by author' });
   }
 };
-

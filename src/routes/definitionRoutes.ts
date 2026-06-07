@@ -21,7 +21,4 @@ router.post('/', authenticate, createDefinition);
 router.post('/:id/vote', authenticate, voteDefinition);
 router.post('/:id/report', authenticate, reportDefinition);
 
-
-
-
 export default router;
