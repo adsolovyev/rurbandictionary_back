@@ -3,7 +3,7 @@ import { getWordsByLetter, getSuggestions, getRandomWord } from '../controllers/
 
 const router = Router();
 
-router.get('/browse', getWordsByLetter);
+router.get('/browse', getWordsByLetter); // /api/browse?letter=А&page=1
 router.get('/suggest', getSuggestions);
 router.get('/random-word', getRandomWord);
 
