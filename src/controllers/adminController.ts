@@ -230,8 +230,16 @@ export const getRecentReports = async (req: AuthRequest, res: Response) => {
 // GET /api/admin/users – список всех пользователей (только для админа)
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
   if (!req.user?.isAdmin) return res.status(403).json({ error: 'Forbidden' });
+  const search = req.query.search as string | undefined;
   try {
-    const result = await pool.query('SELECT id, login, email FROM ud_users ORDER BY id');
+    let query = 'SELECT id, login, email FROM ud_users';
+    const params: string[] = [];
+    if (search) {
+      query += ' WHERE login ILIKE $1 OR email ILIKE $1';
+      params.push(`%${search}%`);
+    }
+    query += ' ORDER BY id';
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
     console.error(err);
@@ -254,5 +262,26 @@ export const resetUserPassword = async (req: AuthRequest, res: Response) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to reset password' });
+  }
+};
+
+export const searchUsers = async (req: AuthRequest, res: Response) => {
+  if (!req.user?.isAdmin) return res.status(403).json({ error: 'Forbidden' });
+  const query = req.query.q as string | undefined;
+  if (!query || query.length < 2) {
+    return res.json([]);
+  }
+  try {
+    const result = await pool.query(
+      `SELECT id, login, email FROM ud_users
+       WHERE login ILIKE $1 OR email ILIKE $1
+       ORDER BY login
+       LIMIT 20`,
+      [`%${query}%`]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to search users' });
   }
 };

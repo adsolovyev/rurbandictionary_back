@@ -17,6 +17,7 @@ import {
   rejectDefinition,
   getAllUsers, 
   resetUserPassword,
+  searchUsers,
 } from '../controllers/adminController';
 
 const router = Router();
@@ -38,5 +39,6 @@ router.put('/definitions/:id/block', blockDefinition);
 router.put('/users/:userId/ban', banUser);
 router.get('/users', getAllUsers);
 router.post('/users/:userId/reset-password', resetUserPassword);
+router.get('/users/search', searchUsers);
 
 export default router;
