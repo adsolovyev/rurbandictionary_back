@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import pool from '../db';
+import bcrypt from 'bcrypt';
 
 export const getPendingDefinitions = async (req: AuthRequest, res: Response) => {
   const page = parseInt(req.query.page as string, 10) || 1;
@@ -223,5 +224,35 @@ export const getRecentReports = async (req: AuthRequest, res: Response) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch recent reports' });
+  }
+};
+
+// GET /api/admin/users – список всех пользователей (только для админа)
+export const getAllUsers = async (req: AuthRequest, res: Response) => {
+  if (!req.user?.isAdmin) return res.status(403).json({ error: 'Forbidden' });
+  try {
+    const result = await pool.query('SELECT id, login, email FROM ud_users ORDER BY id');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+};
+
+// POST /api/admin/users/:userId/reset-password – сброс пароля админом
+export const resetUserPassword = async (req: AuthRequest, res: Response) => {
+  if (!req.user?.isAdmin) return res.status(403).json({ error: 'Forbidden' });
+  const userId = parseInt(req.params.userId as string, 10);
+  const { newPassword } = req.body;
+  if (isNaN(userId) || !newPassword) {
+  return res.status(400).json({ error: 'Invalid user ID or missing password' });
+  }
+  try {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await pool.query('UPDATE ud_users SET password_hash = $1 WHERE id = $2', [hashedPassword, userId]);
+    res.json({ message: 'Password reset successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to reset password' });
   }
 };

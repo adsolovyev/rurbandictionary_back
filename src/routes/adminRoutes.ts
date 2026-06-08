@@ -15,6 +15,8 @@ import {
   getPendingDefinitions,
   approveDefinition,
   rejectDefinition,
+  getAllUsers, 
+  resetUserPassword,
 } from '../controllers/adminController';
 
 const router = Router();
@@ -34,5 +36,7 @@ router.put('/reports/:id/resolve', resolveReport);
 router.get('/reports/recent', getRecentReports);
 router.put('/definitions/:id/block', blockDefinition);
 router.put('/users/:userId/ban', banUser);
+router.get('/users', getAllUsers);
+router.post('/users/:userId/reset-password', resetUserPassword);
 
 export default router;
