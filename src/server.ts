@@ -7,6 +7,9 @@ import definitionRoutes from './routes/definitionRoutes';
 import browseRoutes from './routes/browseRoutes';
 import userRoutes from './routes/userRoutes';
 import adminRoutes from './routes/adminRoutes';
+import session from 'express-session';
+import passport from 'passport';
+import configurePassport from './config/passport';
 
 console.log('=== SERVER FILE RELOADED ===');
 dotenv.config();
@@ -20,6 +23,16 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+// Goo Auth
+app.use(session({
+  secret: process.env.SESSION_SECRET!,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false, httpOnly: true, maxAge: 24 * 60 * 60 * 1000 }
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+configurePassport();
 
 // Логирование запросов
 app.use((req, res, next) => {
