@@ -107,3 +107,17 @@ export const getRandomWord = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to fetch random word' });
   }
 };
+
+// GET /api/words/active
+export const getActiveWords = async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      `SELECT DISTINCT word FROM ud_definitions WHERE status = 'active' ORDER BY word`
+    );
+    const words = result.rows.map(row => row.word);
+    res.json(words);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch active words' });
+  }
+};
