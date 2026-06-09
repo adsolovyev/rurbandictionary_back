@@ -278,3 +278,28 @@ export const getDefinitionsByExactWord = async (req: AuthRequest, res: Response)
     res.status(500).json({ error: 'Failed to fetch definitions by exact word' });
   }
 };
+
+// GET /api/definitions/latest?page=1&limit=20
+export const getLatestDefinitions = async (req: AuthRequest, res: Response) => {
+  const page = parseInt(req.query.page as string, 10) || 1;
+  const limit = parseInt(req.query.limit as string, 10) || 20;
+  const offset = (page - 1) * limit;
+  const userId = req.user?.id || null;
+
+  try {
+    const result = await pool.query(
+      `SELECT d.*, u.login as author,
+        (SELECT vote_type FROM ud_votes WHERE user_id = $1 AND definition_id = d.id) as user_vote
+       FROM ud_definitions d
+       LEFT JOIN ud_users u ON d.author_id = u.id
+       WHERE d.status = 'active' OR d.status IS NULL
+       ORDER BY d.created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [userId, limit, offset]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch latest definitions' });
+  }
+};
