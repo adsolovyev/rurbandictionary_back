@@ -73,14 +73,14 @@ export const getSuggestions = async (req: Request, res: Response) => {
 
   try {
     const result = await pool.query(
-      `SELECT DISTINCT word
+      `SELECT DISTINCT ON (word) word, definition
        FROM ud_definitions
        WHERE word ILIKE $1 AND status = 'active'
-       ORDER BY word
+       ORDER BY word, (upvotes - downvotes) DESC
        LIMIT 10`,
       [`${q}%`]
     );
-    res.json(result.rows.map(row => row.word));
+    res.json(result.rows); // [{ word, definition }, ...]
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch suggestions' });
