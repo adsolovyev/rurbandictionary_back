@@ -48,8 +48,6 @@ export const rejectDefinition = async (req: AuthRequest, res: Response) => {
   const id = parseInt(req.params.id as string, 10);
   const { reason } = req.body; // строка причины
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
-  // можно сделать проверку на обязательность:
-  // if (!reason || reason.trim() === '') return res.status(400).json({ error: 'Reason is required' });
   try {
     const result = await pool.query(
       `UPDATE ud_definitions SET status = 'rejected', rejection_reason = $1 WHERE id = $2 AND status = 'pending' RETURNING id`,
@@ -80,7 +78,6 @@ export const getReports = async (req: AuthRequest, res: Response) => {
        WHERE r.resolved = false
        ORDER BY r.created_at DESC`
     );
-    // Преобразуем строки в нужный формат для фронта
     const reports = result.rows.map(row => ({
       id: row.id,
       definition_id: row.definition_id,

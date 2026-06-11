@@ -11,7 +11,6 @@ import session from 'express-session';
 import passport from 'passport';
 import configurePassport from './config/passport';
 
-console.log('=== SERVER FILE RELOADED ===');
 dotenv.config();
 
 const app = express();
@@ -34,21 +33,10 @@ app.use(passport.initialize());
 app.use(passport.session());
 configurePassport();
 
-// Логирование запросов
-app.use((req, res, next) => {
-  console.log(`Handling request: ${req.method} ${req.url}`);
-  next();
-});
-
 app.use('/api/auth', authRoutes);
 app.use('/api/definitions', definitionRoutes);
 app.use('/api', browseRoutes); // /api/browse, /api/suggest, /api/random-word
 app.use('/api/admin', adminRoutes);
-
-// Простой эндпоинт для проверки
-app.get('/', (req, res) => {
-  res.send('Backend is working');
-});
 
 app.use('/api/user', userRoutes);
 
