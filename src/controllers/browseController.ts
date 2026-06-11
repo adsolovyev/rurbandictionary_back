@@ -121,3 +121,19 @@ export const getActiveWords = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to fetch active words' });
   }
 };
+
+// GET /api/definitions/suggestions-data
+export const getSuggestionsData = async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      `SELECT DISTINCT ON (word) word, definition
+       FROM ud_definitions
+       WHERE status = 'active'
+       ORDER BY word, (upvotes - downvotes) DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch suggestions data' });
+  }
+};
