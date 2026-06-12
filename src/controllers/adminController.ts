@@ -149,8 +149,8 @@ export const getAllActiveReports = async (req: AuthRequest, res: Response) => {
               (SELECT COUNT(*) FROM ud_definitions WHERE author_id = u.id AND status = 'active') as author_definitions_count,
               (SELECT COUNT(*) FROM ud_reports WHERE definition_id IN (SELECT id FROM ud_definitions WHERE author_id = u.id) AND resolved = false) as author_reports_count
        FROM ud_reports r
-       JOIN ud_definitions d ON r.definition_id = d.id
-       JOIN ud_users u ON d.author_id = u.id
+       LEFT JOIN ud_definitions d ON r.definition_id = d.id
+       LEFT JOIN ud_users u ON d.author_id = u.id
        WHERE r.resolved = false
        ORDER BY r.created_at DESC`
     );
