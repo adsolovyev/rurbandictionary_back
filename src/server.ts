@@ -14,6 +14,7 @@ import configurePassport from './config/passport';
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1);
 const port = process.env.PORT || 5000;
 
 app.use(cors({
@@ -27,7 +28,11 @@ app.use(session({
   secret: process.env.SESSION_SECRET!,
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false, httpOnly: true, maxAge: 24 * 60 * 60 * 1000 }
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true, 
+    maxAge: 24 * 60 * 60 * 1000 
+  }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
