@@ -200,6 +200,7 @@ export const getDefinitionById = async (req: AuthRequest, res: Response) => {
   }
   const userId = req.user?.id || null;
 
+  console.log('Fetching definition id:', definitionId);
   try {
     const result = await pool.query(
       `SELECT d.*, u.login as author,
