@@ -141,7 +141,9 @@ export const getRecentPendingDefinitions = async (req: AuthRequest, res: Respons
 };
 
 export const getAllActiveReports = async (req: AuthRequest, res: Response) => {
+  console.log('=== getAllActiveReports called ===');
   try {
+    console.log('Attempting to fetch reports...');
     const result = await pool.query(
       `SELECT r.id, r.definition_id, r.reporter_id, r.reason, r.comment, r.created_at, r.resolved,
               d.word, d.definition, d.example, d.created_at as def_created_at, d.upvotes, d.downvotes, d.status as def_status,
@@ -154,9 +156,10 @@ export const getAllActiveReports = async (req: AuthRequest, res: Response) => {
        WHERE r.resolved = false
        ORDER BY r.created_at DESC`
     );
+    console.log('Query successful, rows found:', result.rows.length);
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
+    console.error('ERROR in getAllActiveReports:', err);
     res.status(500).json({ error: 'Failed to fetch reports' });
   }
 };
