@@ -144,10 +144,8 @@ export const getAllActiveReports = async (req: AuthRequest, res: Response) => {
   try {
     const result = await pool.query(
       `SELECT r.id, r.definition_id, r.reporter_id, r.reason, r.comment, r.created_at, r.resolved,
-              d.word, d.definition, d.example, d.created_at as def_created_at, d.upvotes, d.downvotes, d.status as def_status,
-              u.id as author_id, u.login as author_login, u.status as author_status,
-              (SELECT COUNT(*) FROM ud_definitions WHERE author_id = u.id AND status = 'active') as author_definitions_count,
-              (SELECT COUNT(*) FROM ud_reports WHERE definition_id IN (SELECT id FROM ud_definitions WHERE author_id = u.id) AND resolved = false) as author_reports_count
+              d.word, d.definition, d.example, d.created_at as def_created_at, d.upvotes, d.downvotes,
+              u.id as author_id, u.login as author_login
        FROM ud_reports r
        JOIN ud_definitions d ON r.definition_id = d.id
        JOIN ud_users u ON d.author_id = u.id
