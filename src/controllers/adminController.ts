@@ -180,9 +180,13 @@ export const blockDefinition = async (req: AuthRequest, res: Response) => {
   const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid definition id' });
   try {
+    // Блокируем определение
     await pool.query('UPDATE ud_definitions SET status = $1 WHERE id = $2', ['blocked', id]);
-    // Дополнительно: можно разрешить все жалобы на это определение? По желанию, но пока оставим.
-    res.json({ message: 'Definition blocked' });
+    
+    // Автоматически закрываем все неразрешённые жалобы на это определение
+    await pool.query('UPDATE ud_reports SET resolved = true WHERE definition_id = $1 AND resolved = false', [id]);
+    
+    res.json({ message: 'Definition blocked and related reports resolved' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to block definition' });
