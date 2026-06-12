@@ -17,7 +17,7 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: 'https://rude-lv1t.onrender.com',
   credentials: true,
 }));
 app.use(express.json());
