@@ -9,7 +9,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --exec ts-node src/server.ts",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "build": "tsc"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -35,6 +36,7 @@
     "@types/passport-google-oauth20": "^2.0.17",
     "@types/pg": "^8.20.0",
     "nodemon": "^3.1.14",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
   }
 }
