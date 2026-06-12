@@ -78,11 +78,11 @@ export const login = async (req: Request, res: Response) => {
     );
 
     res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+});
 
     console.log('Login successful for', user.login);
     res.json({ message: 'Logged in successfully', user: { id: user.id, login: user.login, email: user.email, isAdmin: user.is_admin } });
