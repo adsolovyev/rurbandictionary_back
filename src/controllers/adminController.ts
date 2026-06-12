@@ -78,7 +78,7 @@ export const getReports = async (req: AuthRequest, res: Response) => {
        WHERE r.resolved = false
        ORDER BY r.created_at DESC`
     );
-    const reports = result.rows.map(row => ({
+    const reports = result.rows.map((row: any) => ({
       id: row.id,
       definition_id: row.definition_id,
       reason: row.reason,

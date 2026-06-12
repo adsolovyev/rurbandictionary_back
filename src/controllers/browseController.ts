@@ -55,7 +55,7 @@ export const getWordsByLetter = async (req: Request, res: Response) => {
     const totalPages = Math.ceil(total / limit);
 
     const result = await pool.query(queryWords, paramsWords);
-    const words = result.rows.map(row => row.word);
+    const words = result.rows.map((row: any) => row.word);
 
     res.json({ words, page, limit, total, totalPages });
   } catch (err) {

@@ -10,10 +10,10 @@ export const getSettings = async (req: AuthRequest, res: Response) => {
       'SELECT key, value FROM ud_user_settings WHERE user_id = $1',
       [req.user.id]
     );
-    const settings = result.rows.reduce((acc, row) => {
-      acc[row.key] = row.value;
-      return acc;
-    }, {});
+    const settings = result.rows.reduce((acc: Record<string, string>, row: any) => {
+  acc[row.key] = row.value;
+  return acc;
+}, {});
     res.json(settings);
   } catch (err) {
     console.error(err);
