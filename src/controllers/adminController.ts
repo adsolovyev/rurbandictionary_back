@@ -141,25 +141,22 @@ export const getRecentPendingDefinitions = async (req: AuthRequest, res: Respons
 };
 
 export const getAllActiveReports = async (req: AuthRequest, res: Response) => {
-  console.log('=== getAllActiveReports called ===');
   try {
-    console.log('Attempting to fetch reports...');
     const result = await pool.query(
       `SELECT r.id, r.definition_id, r.reporter_id, r.reason, r.comment, r.created_at, r.resolved,
               d.word, d.definition, d.example, d.created_at as def_created_at, d.upvotes, d.downvotes, d.status as def_status,
-              u.id as author_id, u.login as author_login, u.is_banned,
+              u.id as author_id, u.login as author_login, u.status as author_status,
               (SELECT COUNT(*) FROM ud_definitions WHERE author_id = u.id AND status = 'active') as author_definitions_count,
               (SELECT COUNT(*) FROM ud_reports WHERE definition_id IN (SELECT id FROM ud_definitions WHERE author_id = u.id) AND resolved = false) as author_reports_count
        FROM ud_reports r
-       LEFT JOIN ud_definitions d ON r.definition_id = d.id
-       LEFT JOIN ud_users u ON d.author_id = u.id
+       JOIN ud_definitions d ON r.definition_id = d.id
+       JOIN ud_users u ON d.author_id = u.id
        WHERE r.resolved = false
        ORDER BY r.created_at DESC`
     );
-    console.log('Query successful, rows found:', result.rows.length);
     res.json(result.rows);
   } catch (err) {
-    console.error('ERROR in getAllActiveReports:', err);
+    console.error(err);
     res.status(500).json({ error: 'Failed to fetch reports' });
   }
 };
