@@ -70,12 +70,12 @@ export const createDefinition = async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const result = await pool.query(
-      `INSERT INTO ud_definitions (word, definition, example, author_id, status)
-        VALUES ($1, $2, $3, $4, 'pending')
-        RETURNING id, word, definition, example, created_at, upvotes, downvotes, status`,
-      [word.trim(), definition.trim(), example?.trim() || null, req.user.id]
-    );
+const result = await pool.query(
+  `INSERT INTO ud_definitions (word, definition, example, author_id, status, created_at)
+   VALUES ($1, $2, $3, $4, 'pending', NOW())
+   RETURNING id, word, definition, example, created_at, upvotes, downvotes`,
+  [word.trim(), definition.trim(), example?.trim() || null, req.user.id]
+);
     const newDef = result.rows[0];
     newDef.author = req.user.login;
     console.log('Definition created successfully:', newDef);
