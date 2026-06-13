@@ -10,7 +10,6 @@ import adminRoutes from './routes/adminRoutes';
 import session from 'express-session';
 import passport from 'passport';
 import configurePassport from './config/passport';
-import listEndpoints from 'express-list-endpoints'; // сборка эндпоинтов
 
 
 dotenv.config();
@@ -56,12 +55,6 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 app.use((req, res, next) => {
   console.log(`[${req.method}] ${req.url}`);
   next();
-});
-
-// сборка эндпоинтов
-app.get('/admin/routes', (req, res) => {
-  const routes = listEndpoints(app);
-  res.json(routes);
 });
 
 app.listen(port, () => {
