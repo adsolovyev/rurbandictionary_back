@@ -57,20 +57,6 @@ app.use((req, res, next) => {
   next();
 });
 
-console.log('=== REGISTERED ROUTES ===');
-const printRoutes = (stack: any[], parentPath = '') => {
-  for (const layer of stack) {
-    if (layer.route) {
-      const methods = Object.keys(layer.route.methods).join(',').toUpperCase();
-      console.log(`${methods} ${parentPath}${layer.route.path}`);
-    } else if (layer.handle?.stack) {
-      // вложенный роутер (например, из express.Router)
-      printRoutes(layer.handle.stack, parentPath + (layer.regexp.source.replace(/\\\/\?/g, '/').replace(/(\^|\$|\?)/g, '')));
-    }
-  }
-};
-printRoutes(app._router.stack);
-
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
