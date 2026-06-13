@@ -57,6 +57,26 @@ app.use((req, res, next) => {
   next();
 });
 
+// ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ ПРОСМОТРА ВСЕХ РОУТОВ (без защиты)
+app.get('/debug/routes', (req, res) => {
+  const routes: { method: string; path: string }[] = [];
+  
+  const extract = (stack: any[], basePath = '') => {
+    stack.forEach(layer => {
+      if (layer.route) {
+        const methods = Object.keys(layer.route.methods).join(',').toUpperCase();
+        routes.push({ method: methods, path: basePath + layer.route.path });
+      } else if (layer.name === 'router' && layer.handle.stack) {
+        extract(layer.handle.stack, basePath + (layer.regexp.source.replace(/\\\/\?/g, '/').replace(/(\^|\$|\?)/g, '')));
+      }
+    });
+  };
+  
+  extract(app._router.stack);
+  res.json(routes);
+});
+
+
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
