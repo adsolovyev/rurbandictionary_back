@@ -76,13 +76,24 @@ export const login = async (req: Request, res: Response) => {
       process.env.JWT_SECRET!,
       { expiresIn: '7d' }
     );
+// old 
+//     res.cookie('token', token, {
+//   httpOnly: true,
+//   secure: process.env.NODE_ENV === 'production',
+//   sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+//   maxAge: 7 * 24 * 60 * 60 * 1000,
+// });
 
-    res.cookie('token', token, {
+// new 
+res.cookie('token', token, {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  secure: true,                     // всегда true для HTTPS
+  sameSite: 'lax',                  // важно: не 'none' для одного домена
   maxAge: 7 * 24 * 60 * 60 * 1000,
+  path: '/',
+  // domain не указываем — кука будет привязана к текущему домену (прокси)
 });
+
 
     console.log('Login successful for', user.login);
     res.json({ message: 'Logged in successfully', user: { id: user.id, login: user.login, email: user.email, isAdmin: user.is_admin } });
