@@ -19,7 +19,7 @@ app.set('trust proxy', 1);
 const port = process.env.PORT || 5000;
 
 app.use(cors({
-  origin: 'https://rude-lv1t.onrender.com',
+  origin: ['https://rude-lv1t.onrender.com', 'https://rurde-proxy.onrender.com'],
   credentials: true,
 }));
 app.use(express.json());
