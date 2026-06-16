@@ -1,25 +1,23 @@
 // src/services/email.ts
 
-// API-ключ и email отправителя берутся из переменных окружения
+// Конфигурация из переменных окружения
 const UNISENDER_API_KEY = process.env.UNISENDER_API_KEY;
 const UNISENDER_SENDER_EMAIL = process.env.UNISENDER_SENDER_EMAIL;
 const UNISENDER_SENDER_NAME = process.env.UNISENDER_SENDER_NAME || 'Russian Urban Dictionary';
 
-// Проверяем, что все необходимые переменные заданы
 if (!UNISENDER_API_KEY || !UNISENDER_SENDER_EMAIL) {
-  console.warn('Unisender credentials are not configured');
+  console.warn('Unisender Go credentials are not configured');
 }
 
 /**
- * Отправляет письмо через API Unisender Go
+ * Отправляет письмо через Web API Unisender Go
  * Документация: https://godocs.unisender.ru/web-api-ref#email-send
  */
 export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   console.log(`sendEmail called: to=${to}, subject=${subject}`);
 
-  // Если ключ или email не заданы, выходим
   if (!UNISENDER_API_KEY || !UNISENDER_SENDER_EMAIL) {
-    console.warn('Unisender credentials not configured, skipping email');
+    console.warn('Unisender Go credentials not configured, skipping email');
     return;
   }
 
@@ -33,14 +31,14 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
           email: to,
         },
       ],
-      // Вместо template_id можно передать готовый html
       body: {
         html: html,
-        plaintext: '', // можно оставить пустым или передать текстовую версию
       },
       subject: subject,
       from_email: UNISENDER_SENDER_EMAIL,
       from_name: UNISENDER_SENDER_NAME,
+      track_links: 0,        // Отключаем отслеживание ссылок для транзакционных писем
+      track_read: 0,         // Отключаем отслеживание прочтений
     },
   };
 
@@ -57,11 +55,11 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
     const responseData = await response.json();
 
     if (!response.ok) {
-      throw new Error(`Unisender API error (${response.status}): ${JSON.stringify(responseData)}`);
+      throw new Error(`Unisender Go API error (${response.status}): ${JSON.stringify(responseData)}`);
     }
 
-    console.log(`Email sent via Unisender, response: ${JSON.stringify(responseData)}`);
+    console.log(`Email sent via Unisender Go, response: ${JSON.stringify(responseData)}`);
   } catch (error) {
-    console.error('Failed to send email via Unisender:', error);
+    console.error('Failed to send email via Unisender Go:', error);
   }
 }
