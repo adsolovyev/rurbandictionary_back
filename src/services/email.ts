@@ -21,8 +21,9 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
-  if (!SMTP_USER || !SMTP_PASS || !SMTP_FROM) {
-    console.warn('SMTP credentials not configured, skipping email');
+    console.log(`sendEmail called: to=${to}, subject=${subject}`);
+    if (!SMTP_USER || !SMTP_PASS || !SMTP_FROM) {
+        console.warn('SMTP credentials not configured, skipping email');
     return;
   }
 
