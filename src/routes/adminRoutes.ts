@@ -12,7 +12,6 @@ import { getReports,
     getActiveResetRequests,
     applyResetPassword,
     rejectResetRequest,
-    requestPasswordReset
  } from '../controllers/adminController';
 
 import {
