@@ -8,8 +8,6 @@ import browseRoutes from './routes/browseRoutes';
 import userRoutes from './routes/userRoutes';
 import adminRoutes from './routes/adminRoutes';
 import session from 'express-session';
-import passport from 'passport';
-import configurePassport from './config/passport';
 
 
 dotenv.config();
@@ -35,9 +33,6 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000 
   }
 }));
-app.use(passport.initialize());
-app.use(passport.session());
-configurePassport();
 
 app.use('/api/auth', authRoutes);
 app.use('/api/definitions', definitionRoutes);
