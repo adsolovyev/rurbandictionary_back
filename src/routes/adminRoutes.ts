@@ -9,6 +9,10 @@ import { getReports,
     getAllActiveReports,
     blockDefinition,
     banUser,
+    getActiveResetRequests,
+    applyResetPassword,
+    rejectResetRequest,
+    requestPasswordReset
  } from '../controllers/adminController';
 
 import {
@@ -40,5 +44,9 @@ router.put('/users/:userId/ban', banUser);
 router.get('/users', getAllUsers);
 router.post('/users/:userId/reset-password', resetUserPassword);
 router.get('/users/search', searchUsers);
+
+router.get('/reset-requests', getActiveResetRequests);
+router.post('/reset-requests/:id/apply', applyResetPassword);
+router.post('/reset-requests/:id/reject', rejectResetRequest);
 
 export default router;

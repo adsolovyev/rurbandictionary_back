@@ -127,3 +127,43 @@ export const logout = (req: Request, res: Response) => {
   res.clearCookie('token');
   res.json({ message: 'Logged out' });
 };
+
+export const requestPasswordReset = async (req: Request, res: Response) => {
+  const { login, email, password, notes } = req.body;
+
+  // Валидация обязательных полей
+  if (!login || !email || !password) {
+    return res.status(400).json({ error: 'Не все обязательные поля заполнены' });
+  }
+  if (login.length > 50) {
+    return res.status(400).json({ error: 'Имя пользователя не может быть длиннее 50 символов' });
+  }
+  if (email.length > 100) {
+    return res.status(400).json({ error: 'Email не может быть длиннее 100 символов' });
+  }
+  if (notes && notes.length > 500) {
+    return res.status(400).json({ error: 'Поле "последние взаимодействия" не может быть длиннее 500 символов' });
+  }
+
+  try {
+    // Хешируем новый пароль
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Вставляем заявку в таблицу ur_reset_pwd
+    const result = await pool.query(
+      `INSERT INTO ur_reset_pwd (user_id, user_mail, new_password_hash, notes, status, created_at)
+       VALUES ($1, $2, $3, $4, 'Active', NOW())
+       RETURNING id`,
+      [login, email, hashedPassword, notes || null]
+    );
+
+    console.log(`Заявка на смену пароля создана: id=${result.rows[0].id}, пользователь=${login}`);
+
+    // TODO: опционально отправить уведомление админу (Telegram)
+
+    res.status(201).json({ message: 'Заявка на смену пароля успешно создана' });
+  } catch (err) {
+    console.error('Ошибка при создании заявки на смену пароля:', err);
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+  }
+};

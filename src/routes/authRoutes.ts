@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { register, login, getMe, logout } from '../controllers/authController';
+import { register, login, getMe, logout, requestPasswordReset } from '../controllers/authController';
 import { authenticate } from '../middleware/auth';
 import passport from 'passport';
 import jwt from 'jsonwebtoken';
+
 
 const router = Router();
 
@@ -10,6 +11,7 @@ router.post('/register', register);
 router.post('/login', login);
 router.get('/me', authenticate, getMe);
 router.post('/logout', authenticate, logout);
+router.post('/request-password-reset', requestPasswordReset);
 
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), (req, res) => {

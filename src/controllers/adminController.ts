@@ -111,9 +111,11 @@ export const getAdminStats = async (req: AuthRequest, res: Response) => {
   try {
     const pendingDefs = await pool.query('SELECT COUNT(*) FROM ud_definitions WHERE status = $1', ['pending']);
     const pendingReports = await pool.query('SELECT COUNT(*) FROM ud_reports WHERE resolved = $1', [false]);
+    const pendingResets = await pool.query('SELECT COUNT(*) FROM ur_reset_pwd WHERE status = $1', ['Active']);
     res.json({
       pendingDefinitions: parseInt(pendingDefs.rows[0].count, 10),
       pendingReports: parseInt(pendingReports.rows[0].count, 10),
+      pendingResets: parseInt(pendingResets.rows[0].count, 10),
     });
   } catch (err) {
     console.error(err);
@@ -284,5 +286,102 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to search users' });
+  }
+};
+
+// Получить все активные заявки на смену пароля
+export const getActiveResetRequests = async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await pool.query(
+      `SELECT r.id, r.user_id, r.user_mail, r.new_password_hash, r.notes, r.status, r.created_at
+       FROM ur_reset_pwd r
+       WHERE r.status = 'Active'
+       ORDER BY r.created_at DESC`
+    );
+    // Для каждой заявки проверим, есть ли такой пользователь в ud_users
+    const requests = await Promise.all(result.rows.map(async (row) => {
+      // Проверим login
+      const loginCheck = await pool.query('SELECT id FROM ud_users WHERE login = $1', [row.user_id]);
+      const emailCheck = await pool.query('SELECT id FROM ud_users WHERE email = $1', [row.user_mail]);
+      let userId = null;
+      let userMatch = false;
+      if (loginCheck.rows.length > 0 && emailCheck.rows.length > 0) {
+        // Если оба найдены, проверим, принадлежат ли одной записи
+        const bothCheck = await pool.query('SELECT id FROM ud_users WHERE login = $1 AND email = $2', [row.user_id, row.user_mail]);
+        if (bothCheck.rows.length > 0) {
+          userId = bothCheck.rows[0].id;
+          userMatch = true;
+        }
+      }
+      return {
+        ...row,
+        loginExists: loginCheck.rows.length > 0,
+        emailExists: emailCheck.rows.length > 0,
+        userMatch,
+        matchedUserId: userId,
+      };
+    }));
+    res.json(requests);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch reset requests' });
+  }
+};
+
+// Применить новый пароль (смена пароля для пользователя, заявка -> Solved)
+export const applyResetPassword = async (req: AuthRequest, res: Response) => {
+  const requestId = parseInt(String(req.params.id), 10)
+  if (isNaN(requestId)) return res.status(400).json({ error: 'Invalid request id' });
+
+  try {
+    // Получаем заявку
+    const requestResult = await pool.query(
+      'SELECT user_id, user_mail, new_password_hash FROM ur_reset_pwd WHERE id = $1 AND status = $2',
+      [requestId, 'Active']
+    );
+    if (requestResult.rowCount === 0) {
+      return res.status(404).json({ error: 'Request not found or already processed' });
+    }
+    const { user_id, user_mail, new_password_hash } = requestResult.rows[0];
+
+    // Найдём пользователя, у которого login = user_id и email = user_mail (одновременно)
+    const userCheck = await pool.query(
+      'SELECT id FROM ud_users WHERE login = $1 AND email = $2',
+      [user_id, user_mail]
+    );
+    if (userCheck.rowCount === 0) {
+      return res.status(400).json({ error: 'User not found or credentials mismatch' });
+    }
+    const userId = userCheck.rows[0].id;
+
+    // Обновляем пароль
+    await pool.query('UPDATE ud_users SET password_hash = $1 WHERE id = $2', [new_password_hash, userId]);
+    // Меняем статус заявки
+    await pool.query('UPDATE ur_reset_pwd SET status = $1 WHERE id = $2', ['Solved', requestId]);
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to apply reset' });
+  }
+};
+
+// Отклонить заявку
+export const rejectResetRequest = async (req: AuthRequest, res: Response) => {
+  const requestId = parseInt(String(req.params.id), 10)
+  if (isNaN(requestId)) return res.status(400).json({ error: 'Invalid request id' });
+
+  try {
+    const result = await pool.query(
+      'UPDATE ur_reset_pwd SET status = $1 WHERE id = $2 AND status = $3',
+      ['Rejected', requestId, 'Active']
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Request not found or already processed' });
+    }
+    res.json({ message: 'Request rejected' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to reject request' });
   }
 };
