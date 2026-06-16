@@ -1,47 +1,47 @@
-const MAILRU_EMAIL = process.env.MAILRU_EMAIL;
-const MAILRU_PASSWORD = process.env.MAILRU_PASSWORD;
-const SMTP_FROM = process.env.SMTP_FROM || MAILRU_EMAIL;
+import nodemailer from 'nodemailer';
 
-if (!MAILRU_EMAIL || !MAILRU_PASSWORD) {
-  console.warn('Mail.ru credentials not configured');
+const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
+const SMTP_USER = process.env.SMTP_USER;   // ваш email
+const SMTP_PASS = process.env.SMTP_PASS;   // пароль приложения
+const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER;
+
+if (!SMTP_USER || !SMTP_PASS) {
+  console.warn('Gmail SMTP credentials not configured');
 }
+
+const transporter = nodemailer.createTransport({
+  host: SMTP_HOST,
+  port: SMTP_PORT,
+  secure: SMTP_PORT === 465, // 587 — secure: false, STARTTLS
+  auth: {
+    user: SMTP_USER,
+    pass: SMTP_PASS,
+  },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
+});
 
 export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   console.log(`sendEmail called: to=${to}, subject=${subject}`);
-  if (!MAILRU_EMAIL || !MAILRU_PASSWORD) {
-    console.warn('Mail.ru credentials not configured, skipping email');
+  if (!SMTP_USER || !SMTP_PASS) {
+    console.warn('SMTP credentials not configured, skipping email');
     return;
   }
-
-  const from = SMTP_FROM || MAILRU_EMAIL;
-  if (!from) {
-    console.warn('From email not configured, skipping');
-    return;
-  }
-
-  const params = new URLSearchParams();
-  params.append('from', from);
-  params.append('to', to);
-  params.append('subject', subject);
-  params.append('html', html);
-
-  const auth = Buffer.from(`${MAILRU_EMAIL}:${MAILRU_PASSWORD}`).toString('base64');
 
   try {
-    const response = await fetch('https://api.mail.ru/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${auth}`,
-      },
-      body: params,
+    const info = await transporter.sendMail({
+      from: `"Russian Urban Dictionary" <${SMTP_FROM}>`,
+      to,
+      subject,
+      html,
     });
-    const responseText = await response.text();
-    if (!response.ok) {
-      throw new Error(`Mail.ru API error ${response.status}: ${responseText}`);
-    }
-    console.log(`Email sent via Mail.ru API, response: ${responseText}`);
+    console.log(`Email sent via Gmail SMTP, messageId: ${info.messageId}`);
   } catch (err) {
-    console.error('Failed to send email via Mail.ru API:', err);
+    console.error('Failed to send email:', err);
+    if (err instanceof Error) {
+      console.error('Stack:', err.stack);
+    }
   }
 }
