@@ -50,9 +50,11 @@ export const approveDefinition = async (req: AuthRequest, res: Response) => {
     if (defInfo.rows.length > 0) {
       const { word, email, login } = defInfo.rows[0];
       const subject = `Ваше определение "${word}" одобрено!`;
+      const userUrl = `https://rurde-proxy.onrender.com/user/${encodeURIComponent(login)}/definitions`;
       const html = `
         <p>Привет, ${login}!</p>
-        <p>Ваше определение для слова <strong>"${word}"</strong> прошло модерацию и опубликовано в словаре.</p>
+        <p>твое определение для слова <strong>"${word}"</strong> прошло модерацию и опубликовано в словаре.</p>
+        <p>Вы можете посмотреть все ваши определения на странице: <a href="${userUrl}">Мои определения</a></p>
         <p>Спасибо за вклад в Russian Urban Dictionary!</p>
         <p><a href="https://rurde-proxy.onrender.com">Перейти на сайт</a></p>
       `;
