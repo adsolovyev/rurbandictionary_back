@@ -58,6 +58,7 @@ export const approveDefinition = async (req: AuthRequest, res: Response) => {
         <p>Спасибо за вклад в Russian Urban Dictionary!</p>
         <p><a href="https://rurde-proxy.onrender.com">Перейти на сайт</a></p>
       `;
+      console.log(`Пытаюсь отправить письмо на ${email}`);
       // Отправляем без await, чтобы не задерживать ответ
       sendEmail(email, subject, html);
     }
