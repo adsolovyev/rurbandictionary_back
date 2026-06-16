@@ -1,47 +1,67 @@
-import nodemailer from 'nodemailer';
+// src/services/email.ts
 
-const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
-const SMTP_USER = process.env.SMTP_USER;   // ваш email
-const SMTP_PASS = process.env.SMTP_PASS;   // пароль приложения
-const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER;
+// API-ключ и email отправителя берутся из переменных окружения
+const UNISENDER_API_KEY = process.env.UNISENDER_API_KEY;
+const UNISENDER_SENDER_EMAIL = process.env.UNISENDER_SENDER_EMAIL;
+const UNISENDER_SENDER_NAME = process.env.UNISENDER_SENDER_NAME || 'Russian Urban Dictionary';
 
-if (!SMTP_USER || !SMTP_PASS) {
-  console.warn('Gmail SMTP credentials not configured');
+// Проверяем, что все необходимые переменные заданы
+if (!UNISENDER_API_KEY || !UNISENDER_SENDER_EMAIL) {
+  console.warn('Unisender credentials are not configured');
 }
 
-const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: SMTP_PORT === 465, // 587 — secure: false, STARTTLS
-  auth: {
-    user: SMTP_USER,
-    pass: SMTP_PASS,
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
-});
-
+/**
+ * Отправляет письмо через API Unisender Go
+ * Документация: https://godocs.unisender.ru/web-api-ref#email-send
+ */
 export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   console.log(`sendEmail called: to=${to}, subject=${subject}`);
-  if (!SMTP_USER || !SMTP_PASS) {
-    console.warn('SMTP credentials not configured, skipping email');
+
+  // Если ключ или email не заданы, выходим
+  if (!UNISENDER_API_KEY || !UNISENDER_SENDER_EMAIL) {
+    console.warn('Unisender credentials not configured, skipping email');
     return;
   }
 
+  const url = 'https://goapi.unisender.ru/ru/transactional/api/v1/email/send.json';
+
+  // Формируем тело запроса согласно документации
+  const payload = {
+    message: {
+      recipients: [
+        {
+          email: to,
+        },
+      ],
+      // Вместо template_id можно передать готовый html
+      body: {
+        html: html,
+        plaintext: '', // можно оставить пустым или передать текстовую версию
+      },
+      subject: subject,
+      from_email: UNISENDER_SENDER_EMAIL,
+      from_name: UNISENDER_SENDER_NAME,
+    },
+  };
+
   try {
-    const info = await transporter.sendMail({
-      from: `"Russian Urban Dictionary" <${SMTP_FROM}>`,
-      to,
-      subject,
-      html,
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': UNISENDER_API_KEY,
+      },
+      body: JSON.stringify(payload),
     });
-    console.log(`Email sent via Gmail SMTP, messageId: ${info.messageId}`);
-  } catch (err) {
-    console.error('Failed to send email:', err);
-    if (err instanceof Error) {
-      console.error('Stack:', err.stack);
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      throw new Error(`Unisender API error (${response.status}): ${JSON.stringify(responseData)}`);
     }
+
+    console.log(`Email sent via Unisender, response: ${JSON.stringify(responseData)}`);
+  } catch (error) {
+    console.error('Failed to send email via Unisender:', error);
   }
 }
