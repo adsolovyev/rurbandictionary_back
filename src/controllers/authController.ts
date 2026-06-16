@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import pool from '../db';
+import { sendTelegramNotification } from '../services/telegram';
 
 export const register = async (req: Request, res: Response) => {
   const { login, email, password } = req.body;
@@ -130,7 +131,6 @@ export const logout = (req: Request, res: Response) => {
 export const requestPasswordReset = async (req: Request, res: Response) => {
   const { login, email, password, notes } = req.body;
 
-  // Валидация обязательных полей
   if (!login || !email || !password) {
     return res.status(400).json({ error: 'Не все обязательные поля заполнены' });
   }
@@ -145,20 +145,27 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
   }
 
   try {
-    // Хешируем новый пароль
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Вставляем заявку в таблицу ur_reset_pwd
     const result = await pool.query(
       `INSERT INTO ur_reset_pwd (user_id, user_mail, new_password_hash, notes, status, created_at)
        VALUES ($1, $2, $3, $4, 'Active', NOW())
        RETURNING id`,
       [login, email, hashedPassword, notes || null]
     );
+    const requestId = result.rows[0].id;
 
-    console.log(`Заявка на смену пароля создана: id=${result.rows[0].id}, пользователь=${login}`);
+    console.log(`Заявка на смену пароля создана: id=${requestId}, пользователь=${login}`);
 
-    // TODO: опционально отправить уведомление админу (Telegram)
+    // Отправка уведомления в Telegram
+    const message = `
+<b>[ЗАПРОС СМЕНЫ ПАРОЛЯ]</b>
+Пользователь: ${login}
+Email: ${email}
+Доп. информация: ${notes || 'не указана'}
+Ссылка: https://rurde-proxy.onrender.com/admin/reset-requests?id=${requestId}
+    `;
+    sendTelegramNotification(message);
 
     res.status(201).json({ message: 'Заявка на смену пароля успешно создана' });
   } catch (err) {

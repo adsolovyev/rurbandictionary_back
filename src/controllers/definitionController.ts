@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import pool from '../db';
+import { sendTelegramNotification } from '../services/telegram';
 
 // GET /api/definitions/random?limit=10
 export const getRandomDefinitions = async (req: AuthRequest, res: Response) => {
@@ -70,15 +71,26 @@ export const createDefinition = async (req: AuthRequest, res: Response) => {
   }
 
   try {
-const result = await pool.query(
-  `INSERT INTO ud_definitions (word, definition, example, author_id, status, created_at)
-   VALUES ($1, $2, $3, $4, 'pending', NOW())
-   RETURNING id, word, definition, example, created_at, upvotes, downvotes`,
-  [word.trim(), definition.trim(), example?.trim() || null, req.user.id]
-);
+    const result = await pool.query(
+      `INSERT INTO ud_definitions (word, definition, example, author_id, status, created_at)
+       VALUES ($1, $2, $3, $4, 'pending', NOW())
+       RETURNING id, word, definition, example, created_at, upvotes, downvotes`,
+      [word.trim(), definition.trim(), example?.trim() || null, req.user.id]
+    );
     const newDef = result.rows[0];
     newDef.author = req.user.login;
     console.log('Definition created successfully:', newDef);
+
+    // Отправка уведомления в Telegram
+    const message = `
+<b>[НОВОЕ СЛОВО НА МОДЕРАЦИЮ]</b>
+Слово: ${newDef.word}
+Автор: ${req.user.login}
+Определение: ${(newDef.definition || '').slice(0, 200)}${(newDef.definition || '').length > 200 ? '...' : ''}
+Ссылка: https://rurde-proxy.onrender.com/admin/pending?id=${newDef.id}
+    `;
+    sendTelegramNotification(message);
+
     res.status(201).json(newDef);
   } catch (err: unknown) {
     console.error('Error creating definition:', err instanceof Error ? err.message : err);
@@ -174,12 +186,39 @@ export const reportDefinition = async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    await pool.query(
+    // Вставляем жалобу и получаем её id
+    const result = await pool.query(
       `INSERT INTO ud_reports (definition_id, reporter_id, reason, comment)
-       VALUES ($1, $2, $3, $4)`,
+       VALUES ($1, $2, $3, $4)
+       RETURNING id`,
       [definitionId, req.user.id, reason, comment || null]
     );
+    const reportId = result.rows[0].id;
+
+    // Получаем информацию об определении и авторе для сообщения
+    const defInfo = await pool.query(
+      `SELECT d.word, u.login as author_login
+       FROM ud_definitions d
+       LEFT JOIN ud_users u ON d.author_id = u.id
+       WHERE d.id = $1`,
+      [definitionId]
+    );
+    const word = defInfo.rows[0]?.word || 'неизвестно';
+    const authorLogin = defInfo.rows[0]?.author_login || 'неизвестен';
+
     console.log('Report submitted successfully');
+
+    // Отправка уведомления в Telegram
+    const message = `
+<b>[НОВАЯ ЖАЛОБА]</b>
+Слово: ${word}
+Причина: ${reason}
+Автор определения: ${authorLogin}
+Жалобу подал: ${req.user.login}
+Ссылка: https://rurde-proxy.onrender.com/admin/reports?id=${reportId}
+    `;
+    sendTelegramNotification(message);
+
     res.status(201).json({ message: 'Report submitted' });
   } catch (err: unknown) {
     console.error('Error submitting report:', err instanceof Error ? err.message : err);
