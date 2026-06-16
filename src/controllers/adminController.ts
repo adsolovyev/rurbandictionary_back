@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import pool from '../db';
 import bcrypt from 'bcrypt';
+import { sendEmail } from '../services/email';
 
 export const getPendingDefinitions = async (req: AuthRequest, res: Response) => {
   const page = parseInt(req.query.page as string, 10) || 1;
@@ -37,6 +38,28 @@ export const approveDefinition = async (req: AuthRequest, res: Response) => {
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Definition not found or already processed' });
     }
+
+    // Получаем данные автора для письма
+    const defInfo = await pool.query(
+      `SELECT d.word, u.email, u.login
+       FROM ud_definitions d
+       JOIN ud_users u ON d.author_id = u.id
+       WHERE d.id = $1`,
+      [id]
+    );
+    if (defInfo.rows.length > 0) {
+      const { word, email, login } = defInfo.rows[0];
+      const subject = `Ваше определение "${word}" одобрено!`;
+      const html = `
+        <p>Привет, ${login}!</p>
+        <p>Ваше определение для слова <strong>"${word}"</strong> прошло модерацию и опубликовано в словаре.</p>
+        <p>Спасибо за вклад в Russian Urban Dictionary!</p>
+        <p><a href="https://rurde-proxy.onrender.com">Перейти на сайт</a></p>
+      `;
+      // Отправляем без await, чтобы не задерживать ответ
+      sendEmail(email, subject, html);
+    }
+
     res.json({ message: 'Definition approved' });
   } catch (err) {
     console.error(err);
