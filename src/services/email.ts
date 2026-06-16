@@ -21,21 +21,24 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
-    console.log(`sendEmail called: to=${to}, subject=${subject}`);
-    if (!SMTP_USER || !SMTP_PASS || !SMTP_FROM) {
-        console.warn('SMTP credentials not configured, skipping email');
+  console.log(`sendEmail called: to=${to}, subject=${subject}`);
+  if (!SMTP_USER || !SMTP_PASS || !SMTP_FROM) {
+    console.warn('SMTP credentials not configured, skipping email');
     return;
   }
 
   try {
     const info = await transporter.sendMail({
-      from: SMTP_FROM,
+      from: `"Russian Urban Dictionary" <${SMTP_FROM}>`,
       to,
       subject,
       html,
     });
-    console.log(`Email sent to ${to}, messageId: ${info.messageId}`);
+    console.log(`Email sent. MessageId: ${info.messageId}, Response: ${info.response}`);
   } catch (err) {
     console.error('Failed to send email:', err);
+    if (err instanceof Error) {
+      console.error('Stack:', err.stack);
+    }
   }
 }
