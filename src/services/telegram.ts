@@ -3,6 +3,9 @@
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
+
+console.log('TELEGRAM_BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN ? 'present' : 'missing');
+console.log('TELEGRAM_CHAT_ID:', process.env.TELEGRAM_CHAT_ID ? 'present' : 'missing');
 /**
  * Отправляет сообщение в Telegram (fire-and-forget).
  * Если токен или chat_id не заданы — просто логирует предупреждение.
