@@ -2,7 +2,6 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import pool from '../db';
 import bcrypt from 'bcrypt';
-import { sendEmail } from '../services/email';
 
 export const getPendingDefinitions = async (req: AuthRequest, res: Response) => {
   const page = parseInt(req.query.page as string, 10) || 1;
@@ -37,30 +36,6 @@ export const approveDefinition = async (req: AuthRequest, res: Response) => {
     );
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Definition not found or already processed' });
-    }
-
-    // Получаем данные автора для письма
-    const defInfo = await pool.query(
-      `SELECT d.word, u.email, u.login
-       FROM ud_definitions d
-       JOIN ud_users u ON d.author_id = u.id
-       WHERE d.id = $1`,
-      [id]
-    );
-    if (defInfo.rows.length > 0) {
-      const { word, email, login } = defInfo.rows[0];
-      const subject = `Ваше определение "${word}" одобрено!`;
-      const userUrl = `https://rurde-proxy.onrender.com/user/${encodeURIComponent(login)}/definitions`;
-      const html = `
-        <p>Привет, ${login}!</p>
-        <p>твое определение для слова <strong>"${word}"</strong> прошло модерацию и опубликовано в словаре.</p>
-        <p>Вы можете посмотреть все ваши определения на странице: <a href="${userUrl}">Мои определения</a></p>
-        <p>Спасибо за вклад в Russian Urban Dictionary!</p>
-        <p><a href="https://rurde-proxy.onrender.com">Перейти на сайт</a></p>
-      `;
-      console.log(`Пытаюсь отправить письмо на ${email}`);
-      // Отправляем без await, чтобы не задерживать ответ
-      sendEmail(email, subject, html);
     }
 
     res.json({ message: 'Definition approved' });
@@ -208,10 +183,8 @@ export const blockDefinition = async (req: AuthRequest, res: Response) => {
   const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid definition id' });
   try {
-    // Блокируем определение
     await pool.query('UPDATE ud_definitions SET status = $1 WHERE id = $2', ['blocked', id]);
     
-    // Автоматически закрываем все неразрешённые жалобы на это определение
     await pool.query('UPDATE ud_reports SET resolved = true WHERE definition_id = $1 AND resolved = false', [id]);
     
     res.json({ message: 'Definition blocked and related reports resolved' });
@@ -227,7 +200,6 @@ export const banUser = async (req: AuthRequest, res: Response) => {
   if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user id' });
   try {
     await pool.query('UPDATE ud_users SET status = $1 WHERE id = $2', ['banned', userId]);
-    // Также блокируем все активные определения пользователя (меняем статус на 'blocked')
     await pool.query('UPDATE ud_definitions SET status = $1 WHERE author_id = $2 AND status = $3', ['blocked', userId, 'active']);
     res.json({ message: 'User banned' });
   } catch (err) {
@@ -324,15 +296,12 @@ export const getActiveResetRequests = async (req: AuthRequest, res: Response) =>
        WHERE r.status = 'Active'
        ORDER BY r.created_at DESC`
     );
-    // Для каждой заявки проверим, есть ли такой пользователь в ud_users
     const requests = await Promise.all(result.rows.map(async (row) => {
-      // Проверим login
       const loginCheck = await pool.query('SELECT id FROM ud_users WHERE login = $1', [row.user_id]);
       const emailCheck = await pool.query('SELECT id FROM ud_users WHERE email = $1', [row.user_mail]);
       let userId = null;
       let userMatch = false;
       if (loginCheck.rows.length > 0 && emailCheck.rows.length > 0) {
-        // Если оба найдены, проверим, принадлежат ли одной записи
         const bothCheck = await pool.query('SELECT id FROM ud_users WHERE login = $1 AND email = $2', [row.user_id, row.user_mail]);
         if (bothCheck.rows.length > 0) {
           userId = bothCheck.rows[0].id;
@@ -360,7 +329,6 @@ export const applyResetPassword = async (req: AuthRequest, res: Response) => {
   if (isNaN(requestId)) return res.status(400).json({ error: 'Invalid request id' });
 
   try {
-    // Получаем заявку
     const requestResult = await pool.query(
       'SELECT user_id, user_mail, new_password_hash FROM ur_reset_pwd WHERE id = $1 AND status = $2',
       [requestId, 'Active']
@@ -370,7 +338,6 @@ export const applyResetPassword = async (req: AuthRequest, res: Response) => {
     }
     const { user_id, user_mail, new_password_hash } = requestResult.rows[0];
 
-    // Найдём пользователя, у которого login = user_id и email = user_mail (одновременно)
     const userCheck = await pool.query(
       'SELECT id FROM ud_users WHERE login = $1 AND email = $2',
       [user_id, user_mail]
@@ -380,9 +347,7 @@ export const applyResetPassword = async (req: AuthRequest, res: Response) => {
     }
     const userId = userCheck.rows[0].id;
 
-    // Обновляем пароль
     await pool.query('UPDATE ud_users SET password_hash = $1 WHERE id = $2', [new_password_hash, userId]);
-    // Меняем статус заявки
     await pool.query('UPDATE ur_reset_pwd SET status = $1 WHERE id = $2', ['Solved', requestId]);
 
     res.json({ message: 'Password updated successfully' });
