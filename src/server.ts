@@ -8,6 +8,7 @@ import browseRoutes from './routes/browseRoutes';
 import userRoutes from './routes/userRoutes';
 import adminRoutes from './routes/adminRoutes';
 import session from 'express-session';
+import shareRoutes from './routes/shareRoutes';
 
 
 dotenv.config();
@@ -55,3 +56,5 @@ app.use((req, res, next) => {
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
+
+app.use('/api/share', shareRoutes);
