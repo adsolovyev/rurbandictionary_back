@@ -163,7 +163,7 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
 Пользователь: ${login}
 Email: ${email}
 Доп. информация: ${notes || 'не указана'}
-Ссылка: https://rurde-proxy.onrender.com/admin/reset-requests
+Ссылка: https://rude-lv1t.onrender.com/admin/reset-requests
     `;
     sendTelegramNotification(message);
 

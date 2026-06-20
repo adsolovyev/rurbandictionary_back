@@ -87,7 +87,7 @@ export const createDefinition = async (req: AuthRequest, res: Response) => {
 Слово: ${newDef.word}
 Автор: ${req.user.login}
 Определение: ${(newDef.definition || '').slice(0, 200)}${(newDef.definition || '').length > 200 ? '...' : ''}
-Ссылка: https://rurde-proxy.onrender.com/admin/pending
+Ссылка: https://rude-lv1t.onrender.com/admin/pending
     `;
     sendTelegramNotification(message);
 
@@ -215,7 +215,7 @@ export const reportDefinition = async (req: AuthRequest, res: Response) => {
 Причина: ${reason}
 Автор определения: ${authorLogin}
 Жалобу подал: ${req.user.login}
-Ссылка: https://rurde-proxy.onrender.com/admin/reports
+Ссылка: https://rude-lv1t.onrender.com/admin/reports
     `;
     sendTelegramNotification(message);
 
